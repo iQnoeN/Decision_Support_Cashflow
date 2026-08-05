@@ -4,6 +4,7 @@ from typing import Dict
 
 from fastapi import FastAPI
 
+from app.api.routes import prediction_router
 from app.core.config import settings
 from app.utils.logging import get_logger
 
@@ -17,6 +18,9 @@ app = FastAPI(
         "liquidity risk assessment and financial decision support."
     ),
 )
+
+# Register API routers
+app.include_router(prediction_router)
 
 
 @app.get("/", response_model=Dict[str, str])
