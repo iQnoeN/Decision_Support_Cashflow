@@ -1,44 +1,43 @@
-"""Unit and API integration tests for CSV Upload endpoint and UploadService."""
+"""Unit and API integration tests for UploadService and POST /upload inference pipeline."""
 
 import io
 import unittest
-from unittest.mock import MagicMock
+from pathlib import Path
 from fastapi.testclient import TestClient
+
 from app.main import app
 from app.services.upload_service import UploadService
 
 
-class TestUploadEndpoint(unittest.TestCase):
+class TestUploadPipeline(unittest.TestCase):
     """Test suite for UploadService and POST /upload API route."""
 
     def setUp(self):
-        """Set up TestClient."""
+        """Set up TestClient and test paths."""
         self.client = TestClient(app)
+        self.project_root = Path(__file__).resolve().parents[2]
+        self.sample_csv_path = self.project_root / "ml" / "data" / "raw" / "bank_statements.csv"
 
-    def test_upload_service_valid_csv(self):
-        """Test UploadService validation with a valid CSV file."""
-        service = UploadService()
-        dummy_file = MagicMock()
-        dummy_file.filename = "test_transactions.csv"
+    def test_post_upload_valid_raw_bank_statement_csv(self):
+        """Test POST /upload/ with actual raw bank statements CSV."""
+        if not self.sample_csv_path.exists():
+            self.skipTest("Sample raw bank_statements.csv not found")
 
-        result = service.validate_and_process_upload(dummy_file)
-
-        self.assertEqual(result["filename"], "test_transactions.csv")
-        self.assertEqual(result["status"], "File uploaded successfully.")
-        self.assertEqual(result["next_step"], "Ready for preprocessing.")
-
-    def test_post_upload_valid_csv(self):
-        """Test POST /upload/ with a valid CSV file upload."""
-        csv_content = b"Date,Cash_In,Cash_Out\n2026-08-01,100,50\n"
-        files = {"file": ("data.csv", io.BytesIO(csv_content), "text/csv")}
-
-        response = self.client.post("/upload/", files=files)
+        with open(self.sample_csv_path, "rb") as f:
+            files = {"file": ("bank_statements.csv", f, "text/csv")}
+            response = self.client.post("/upload/", files=files)
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["filename"], "data.csv")
-        self.assertEqual(data["status"], "File uploaded successfully.")
-        self.assertEqual(data["next_step"], "Ready for preprocessing.")
+
+        self.assertIn("predicted_cashflow", data)
+        self.assertIn("liquidity_score", data)
+        self.assertIn("risk", data)
+        self.assertIn("recommendations", data)
+        self.assertIsInstance(data["predicted_cashflow"], float)
+        self.assertIsInstance(data["liquidity_score"], float)
+        self.assertIsInstance(data["risk"], str)
+        self.assertIsInstance(data["recommendations"], list)
 
     def test_post_upload_invalid_extension(self):
         """Test POST /upload/ with an invalid file extension (.pdf)."""
