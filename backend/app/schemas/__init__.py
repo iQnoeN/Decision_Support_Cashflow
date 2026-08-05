@@ -2,5 +2,6 @@
 
 from app.schemas.request import PredictionRequest
 from app.schemas.response import PredictionResponse
+from app.schemas.upload import UploadResponse
 
-__all__ = ["PredictionRequest", "PredictionResponse"]
+__all__ = ["PredictionRequest", "PredictionResponse", "UploadResponse"]

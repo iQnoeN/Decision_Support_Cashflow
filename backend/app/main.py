@@ -4,7 +4,7 @@ from typing import Dict
 
 from fastapi import FastAPI
 
-from app.api.routes import prediction_router
+from app.api.routes import prediction_router, upload_router
 from app.core.config import settings
 from app.utils.logging import get_logger
 
@@ -21,6 +21,7 @@ app = FastAPI(
 
 # Register API routers
 app.include_router(prediction_router)
+app.include_router(upload_router)
 
 
 @app.get("/", response_model=Dict[str, str])
