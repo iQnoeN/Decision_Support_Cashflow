@@ -20,6 +20,12 @@ from ml.src.features.feature_engineering import (
     remove_missing_rows,
 )
 from app.services.prediction_service import PredictionService
+from app.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+RAW_REQUIRED_COLUMNS = {"transactionTimestamp", "amount", "type", "currentBalance", "txnId"}
+DAILY_REQUIRED_COLUMNS = {"Date", "Cash_In", "Cash_Out", "Net_Cashflow", "End_Balance", "Transaction_Count"}
 
 
 class UploadService:
@@ -45,7 +51,7 @@ class UploadService:
         Raises:
             HTTPException: If file validation fails, CSV parsing fails, or data is insufficient.
         """
-        # 1. Validate file extension
+        # 1. Validate file presence and extension
         if not file or not file.filename:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,41 +64,91 @@ class UploadService:
                 detail="Invalid file type. Only CSV files (.csv) are allowed."
             )
 
-        # 2. Read CSV content into pandas DataFrame
+        logger.info(f"Processing uploaded CSV file: {file.filename}")
+
+        # 2. Read and parse CSV content
         try:
             contents = file.file.read()
+            if not contents or len(contents.strip()) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Uploaded CSV file is empty."
+                )
             raw_df = pd.read_csv(io.BytesIO(contents))
-        except Exception as e:
+        except HTTPException:
+            raise
+        except pd.errors.EmptyDataError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to parse CSV file: {str(e)}"
+                detail="Uploaded CSV file is empty or corrupted."
+            )
+        except Exception as e:
+            logger.warning(f"Failed to parse CSV file: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to parse CSV file format: {str(e)}"
             )
 
         if raw_df.empty:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded CSV file is empty."
+                detail="Uploaded CSV file contains no data rows."
             )
 
-        # 3. Preprocess raw transactions into daily cashflow using Track A functions
-        if "transactionTimestamp" in raw_df.columns:
-            df = convert_dates(raw_df)
-            df = sort_transactions(df)
-            df = create_signed_amount(df)
-            daily_df = aggregate_daily(df)
-        else:
-            daily_df = raw_df
+        # 3. Validate CSV columns and execute preprocessing
+        try:
+            if "transactionTimestamp" in raw_df.columns:
+                missing = RAW_REQUIRED_COLUMNS - set(raw_df.columns)
+                if missing:
+                    missing_str = ", ".join(sorted(missing))
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Uploaded transaction CSV is missing required columns: {missing_str}"
+                    )
+                df = convert_dates(raw_df)
+                df = sort_transactions(df)
+                df = create_signed_amount(df)
+                daily_df = aggregate_daily(df)
+            elif "Date" in raw_df.columns:
+                missing = DAILY_REQUIRED_COLUMNS - set(raw_df.columns)
+                if missing:
+                    missing_str = ", ".join(sorted(missing))
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Uploaded daily cashflow CSV is missing required columns: {missing_str}"
+                    )
+                daily_df = raw_df
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Invalid CSV schema. CSV must contain either raw transaction columns "
+                        "('transactionTimestamp', 'amount', 'type', 'currentBalance', 'txnId') "
+                        "or daily cashflow columns ('Date', 'Cash_In', 'Cash_Out', 'Net_Cashflow', 'End_Balance', 'Transaction_Count')."
+                    )
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"Error during CSV preprocessing: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error preprocessing CSV data: {str(e)}"
+            )
 
-        # 4. Apply Track A feature engineering functions (Skipping create_target)
-        print("=" * 60)
-        print(daily_df.head())
-        print(daily_df.columns.tolist())
-        print("=" * 60)
-        engineered_df = convert_date_column(daily_df)
-        engineered_df = sort_by_date(engineered_df)
-        engineered_df = create_lag_features(engineered_df)
-        engineered_df = create_rolling_features(engineered_df)
-        engineered_df = remove_missing_rows(engineered_df)
+        # 4. Apply Track A feature engineering pipeline
+        try:
+            engineered_df = convert_date_column(daily_df)
+            engineered_df = sort_by_date(engineered_df)
+            engineered_df = create_lag_features(engineered_df)
+            engineered_df = create_rolling_features(engineered_df)
+            engineered_df = remove_missing_rows(engineered_df)
+        except Exception as e:
+            logger.warning(f"Error during feature engineering: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error executing feature engineering on dataset: {str(e)}"
+            )
 
         if engineered_df.empty:
             raise HTTPException(
@@ -100,10 +156,9 @@ class UploadService:
                 detail="Insufficient data after feature engineering. At least 8 consecutive days of cashflow data are required."
             )
 
-        # 5. Extract the final (most recent) row for inference
+        # 5. Extract latest feature row for inference
         latest_row = engineered_df.iloc[-1]
 
-        # 6. Convert row into feature dictionary required by PredictionService
         features = {
             "cash_in": float(latest_row["Cash_In"]),
             "cash_out": float(latest_row["Cash_Out"]),
@@ -117,5 +172,6 @@ class UploadService:
             "rolling_cashout_7": float(latest_row["Rolling_CashOut_7"]),
         }
 
-        # 7. Delegate to PredictionService
+        # 6. Delegate to PredictionService
+        logger.info("Successfully preprocessed CSV data; delegating to PredictionService")
         return self.prediction_service.predict(features)
