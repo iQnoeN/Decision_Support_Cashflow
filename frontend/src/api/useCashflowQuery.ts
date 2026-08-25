@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadStatementApi, predictCashflowApi } from './client';
-import { ScenarioParams, TransactionItem } from './types';
+import { ScenarioParams } from './types';
 import { useCashflowStore } from '../store/useCashflowStore';
 import { useToastStore } from '../store/useToastStore';
 
 export function useUploadStatement() {
   const queryClient = useQueryClient();
-  const { isMockMode, transactions, setForecastResult, scenario } = useCashflowStore();
+  const { isMockMode, transactions, setBaselineForecastResult, scenario } = useCashflowStore();
   const { addToast } = useToastStore();
 
   return useMutation({
@@ -14,7 +14,7 @@ export function useUploadStatement() {
       return await uploadStatementApi(file, isMockMode, transactions, scenario);
     },
     onSuccess: (data) => {
-      setForecastResult(data);
+      setBaselineForecastResult(data);
       queryClient.invalidateQueries({ queryKey: ['cashflowForecast'] });
       addToast({
         type: 'success',
@@ -33,7 +33,7 @@ export function useUploadStatement() {
 }
 
 export function usePredictCashflow() {
-  const { isMockMode, transactions, setForecastResult, scenario } = useCashflowStore();
+  const { isMockMode, transactions, setScenarioForecastResult, scenario } = useCashflowStore();
   const { addToast } = useToastStore();
 
   return useMutation({
@@ -42,11 +42,11 @@ export function usePredictCashflow() {
       return await predictCashflowApi(activeScenario, isMockMode, transactions);
     },
     onSuccess: (data) => {
-      setForecastResult(data);
+      setScenarioForecastResult(data);
       addToast({
         type: 'info',
-        title: 'Forecast Updated',
-        message: `Recalculated predictions. Risk status: ${data.risk} (Score: ${data.liquidity_score})`,
+        title: 'Stress Test Recalculated',
+        message: `Recalculated predictions for uploaded statement. Risk status: ${data.risk} (Score: ${data.liquidity_score})`,
       });
     },
     onError: (error: Error) => {

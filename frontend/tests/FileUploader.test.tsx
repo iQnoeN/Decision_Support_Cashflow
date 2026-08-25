@@ -21,6 +21,6 @@ describe('FileUploader Component', () => {
     );
 
     expect(screen.getByText(/Upload Bank Statement/i)).toBeInTheDocument();
-    expect(screen.getByText(/Download Sample CSV Template/i)).toBeInTheDocument();
+    expect(screen.getByText(/Download CSV Template/i)).toBeInTheDocument();
   });
 });

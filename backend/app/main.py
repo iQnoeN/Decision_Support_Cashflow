@@ -3,6 +3,7 @@
 from typing import Dict
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import prediction_router, upload_router
 from app.core.config import settings
@@ -17,6 +18,15 @@ app = FastAPI(
         "Backend API for short-term cashflow forecasting, "
         "liquidity risk assessment and financial decision support."
     ),
+)
+
+# Enable CORS for frontend development server
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Register API routers

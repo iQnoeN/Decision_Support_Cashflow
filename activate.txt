@@ -1,2 +1,8 @@
+# From Root Directory (c:\Code\AI-Based-MicroBusiness-Cashflow):
 .\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="backend;."
+uvicorn app.main:app --reload
+
+# OR From backend Directory (c:\Code\AI-Based-MicroBusiness-Cashflow\backend):
+..\.venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload

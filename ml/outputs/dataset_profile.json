@@ -1,0 +1,122 @@
+{
+    "Cash_In": {
+        "count": 268,
+        "mean": 1551.931,
+        "median": 550.0,
+        "std": 4629.9891,
+        "min": 0.0,
+        "max": 46720.0,
+        "25th_percentile": 0.0,
+        "75th_percentile": 1302.5
+    },
+    "Cash_Out": {
+        "count": 268,
+        "mean": 1563.1302,
+        "median": 419.0,
+        "std": 4033.7299,
+        "min": 0.0,
+        "max": 31932.0,
+        "25th_percentile": 123.75,
+        "75th_percentile": 1000.0
+    },
+    "Net_Cashflow": {
+        "count": 268,
+        "mean": -11.1992,
+        "median": 25.5,
+        "std": 4722.8549,
+        "min": -29781.0,
+        "max": 45720.0,
+        "25th_percentile": -523.75,
+        "75th_percentile": 737.0
+    },
+    "End_Balance": {
+        "count": 268,
+        "mean": 5945.123,
+        "median": 2614.8,
+        "std": 8772.6763,
+        "min": 0.8,
+        "max": 58180.8,
+        "25th_percentile": 1009.3575,
+        "75th_percentile": 6025.8
+    },
+    "Transaction_Count": {
+        "count": 268,
+        "mean": 3.6231,
+        "median": 3.0,
+        "std": 2.0046,
+        "min": 1.0,
+        "max": 12.0,
+        "25th_percentile": 2.0,
+        "75th_percentile": 5.0
+    },
+    "Lag_1": {
+        "count": 268,
+        "mean": -13.2668,
+        "median": 25.5,
+        "std": 4723.0793,
+        "min": -29781.0,
+        "max": 45720.0,
+        "25th_percentile": -536.25,
+        "75th_percentile": 737.0
+    },
+    "Lag_7": {
+        "count": 268,
+        "mean": -0.916,
+        "median": 25.5,
+        "std": 4727.1715,
+        "min": -29781.0,
+        "max": 45720.0,
+        "25th_percentile": -523.0,
+        "75th_percentile": 756.25
+    },
+    "Rolling_Mean_7": {
+        "count": 268,
+        "mean": -4.6324,
+        "median": -54.0643,
+        "std": 1273.428,
+        "min": -4998.1429,
+        "max": 7735.7143,
+        "25th_percentile": -322.4893,
+        "75th_percentile": 288.75
+    },
+    "Rolling_Std_7": {
+        "count": 268,
+        "mean": 2839.966,
+        "median": 1519.9853,
+        "std": 4008.9511,
+        "min": 150.9909,
+        "max": 23502.0051,
+        "25th_percentile": 915.7985,
+        "75th_percentile": 2598.8868
+    },
+    "Rolling_CashIn_7": {
+        "count": 268,
+        "mean": 10906.0357,
+        "median": 6967.0,
+        "std": 14846.7451,
+        "min": 300.0,
+        "max": 95331.0,
+        "25th_percentile": 4172.5,
+        "75th_percentile": 9892.5
+    },
+    "Rolling_CashOut_7": {
+        "count": 268,
+        "mean": 10938.4623,
+        "median": 7045.5,
+        "std": 11806.8582,
+        "min": 745.0,
+        "max": 68111.0,
+        "25th_percentile": 4120.75,
+        "75th_percentile": 12188.975
+    },
+    "Target": {
+        "count": 268,
+        "mean": -14.7888,
+        "median": 25.5,
+        "std": 4721.9149,
+        "min": -29781.0,
+        "max": 45720.0,
+        "25th_percentile": -523.75,
+        "75th_percentile": 732.75
+    }
+}

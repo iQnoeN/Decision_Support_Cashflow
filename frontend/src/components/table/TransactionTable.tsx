@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TransactionItem } from '../../api/types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { Search, Filter, Download, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 
 interface TransactionTableProps {
   transactions: TransactionItem[];
@@ -188,7 +188,16 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
-            {paginatedItems.length === 0 ? (
+            {transactions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                  <div className="max-w-xs mx-auto space-y-1">
+                    <p className="font-semibold text-slate-300 text-sm">No transactions available.</p>
+                    <p className="text-xs text-slate-500">Upload a bank statement to view transaction history.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   No transactions found matching active search filters.

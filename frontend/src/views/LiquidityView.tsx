@@ -2,17 +2,42 @@ import React from 'react';
 import { useCashflowStore } from '../store/useCashflowStore';
 import { usePredictCashflow } from '../api/useCashflowQuery';
 import { RiskGauge } from '../components/ui/RiskGauge';
-import { Sliders, Lightbulb, RefreshCcw, ArrowUpRight, ArrowDownRight, Zap, ShieldCheck } from 'lucide-react';
+import { Sliders, Lightbulb, RefreshCcw, ArrowUpRight, ArrowDownRight, Zap, ShieldCheck, ShieldAlert, Upload } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 
 export const LiquidityView: React.FC = () => {
-  const { forecastResult, scenario, setScenario, resetScenario } = useCashflowStore();
+  const {
+    baselineForecastResult,
+    scenarioForecastResult,
+    forecastResult: legacyForecastResult,
+    scenario,
+    setScenario,
+    resetScenario,
+    setActiveTab,
+  } = useCashflowStore();
   const predictMutation = usePredictCashflow();
+
+  // Active forecast displays scenarioForecastResult if a scenario is active, else baselineForecastResult
+  const isScenarioActive =
+    Boolean(scenarioForecastResult) || scenario.inflow_multiplier !== 1.0 || scenario.outflow_multiplier !== 1.0;
+  const forecastResult = scenarioForecastResult || baselineForecastResult || legacyForecastResult;
 
   if (!forecastResult) {
     return (
-      <div className="glass-panel p-12 rounded-2xl text-center">
-        <p className="text-slate-400">No active forecast data. Please upload a statement first.</p>
+      <div className="glass-panel p-12 rounded-2xl text-center flex flex-col items-center justify-center min-h-[300px]">
+        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-3">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-slate-200">No Liquidity Data</h3>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          Upload a bank statement to evaluate liquidity risk scores and stress test scenarios.
+        </p>
+        <button
+          onClick={() => setActiveTab('upload')}
+          className="mt-4 px-4 py-2 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl transition-all flex items-center gap-1.5"
+        >
+          <Upload className="w-3.5 h-3.5" /> Upload Bank Statement
+        </button>
       </div>
     );
   }
@@ -37,13 +62,22 @@ export const LiquidityView: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-100">
-          Liquidity Risk Assessment & Scenario Stress-Testing
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Automated solvency monitoring, alerts, and interactive inflow/outflow stress simulation
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-100">
+            Liquidity Risk Assessment & Scenario Stress-Testing
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Automated solvency monitoring, alerts, and interactive inflow/outflow stress simulation
+          </p>
+        </div>
+
+        {isScenarioActive && (
+          <div className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold flex items-center gap-2 self-start sm:self-auto">
+            <Zap className="w-4 h-4 text-amber-400" />
+            Scenario Active (Dashboard & Forecast Remain Baseline)
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -105,9 +139,9 @@ export const LiquidityView: React.FC = () => {
             <button
               onClick={handleApplyScenario}
               disabled={predictMutation.isPending}
-              className="px-4 py-1.5 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl shadow-md shadow-teal-500/20 transition-all"
+              className="px-4 py-1.5 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl shadow-md shadow-teal-500/20 transition-all disabled:opacity-50"
             >
-              Recalculate Stress Test
+              {predictMutation.isPending ? 'Recalculating...' : 'Recalculate Stress Test'}
             </button>
           </div>
         </div>

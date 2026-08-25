@@ -1,11 +1,9 @@
-"""Prediction response schemas using Pydantic."""
 
 from typing import List
 from pydantic import BaseModel, Field
 
 
 class PredictionResponse(BaseModel):
-    """Schema defining response payload for cashflow prediction and liquidity assessment."""
 
     predicted_cashflow: float = Field(
         ...,

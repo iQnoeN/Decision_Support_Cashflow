@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCashflowStore } from '../store/useCashflowStore';
 import { useToastStore } from '../store/useToastStore';
 import { apiClient } from '../api/client';
-import { Settings, Server, Key, FileCheck, CheckCircle2, XCircle, RefreshCw, Layers } from 'lucide-react';
+import { Server, Key, FileCheck, CheckCircle2, XCircle, RefreshCw, Layers } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
   const { isMockMode, setIsMockMode, isDarkMode, toggleDarkMode, forecastResult } = useCashflowStore();

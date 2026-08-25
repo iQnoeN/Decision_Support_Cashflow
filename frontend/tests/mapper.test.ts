@@ -16,7 +16,7 @@ describe('API Mapper', () => {
     expect(result.liquidity_score).toBe(85.0);
     expect(result.risk).toBe('Stable');
     expect(result.points.length).toBeGreaterThan(14);
-    expect(result.metrics.model_name).toContain('XGBoost');
+    expect(result.metrics.model_name).toContain('AI Cashflow Forecast');
     expect(result.feature_importance.length).toBeGreaterThan(0);
   });
 

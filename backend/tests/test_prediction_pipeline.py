@@ -1,6 +1,7 @@
-"""Unit and API integration tests for Prediction pipeline and Liquidity assessment."""
+"""Unit and API integration tests for XGBoost Prediction pipeline and Liquidity assessment."""
 
 import unittest
+from pathlib import Path
 from fastapi.testclient import TestClient
 from app.main import app
 from app.services.prediction_service import PredictionService
@@ -10,7 +11,7 @@ from app.services.liquidity_service import LiquidityService
 
 
 class TestPredictionPipeline(unittest.TestCase):
-    """Test suite for PredictionService and POST /predict API endpoint."""
+    """Test suite for PredictionAdapter, PredictionService, and POST /predict API endpoint."""
 
     def setUp(self):
         """Set up test features dictionary."""
@@ -26,6 +27,26 @@ class TestPredictionPipeline(unittest.TestCase):
             "rolling_cashin_7": 10500.0,
             "rolling_cashout_7": 7000.0,
         }
+
+    def test_xgboost_adapter_prediction(self):
+        """Test that PredictionAdapter loads XGBoost model and returns a float forecast."""
+        adapter = PredictionAdapter()
+        prediction = adapter.predict(self.test_features)
+        self.assertIsInstance(prediction, float)
+
+    def test_xgboost_adapter_missing_features(self):
+        """Test that PredictionAdapter raises ValueError when required features are missing."""
+        adapter = PredictionAdapter()
+        incomplete_features = {"cash_in": 100.0}
+        with self.assertRaises(ValueError):
+            adapter.predict(incomplete_features)
+
+    def test_xgboost_adapter_missing_model_file(self):
+        """Test that PredictionAdapter raises FileNotFoundError for invalid model path."""
+        invalid_path = Path(__file__).resolve().parents[2] / "ml" / "models" / "non_existent.pkl"
+        adapter = PredictionAdapter(model_path=invalid_path)
+        with self.assertRaises(FileNotFoundError):
+            adapter.predict(self.test_features)
 
     def test_prediction_service_orchestration(self):
         """Test that PredictionService orchestrates prediction and liquidity assessment."""

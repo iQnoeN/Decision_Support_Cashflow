@@ -4,21 +4,36 @@ import { usePredictCashflow } from '../api/useCashflowQuery';
 import { ForecastCIChart } from '../components/charts/ForecastCIChart';
 import { FeatureImportanceChart } from '../components/charts/FeatureImportanceChart';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { RefreshCw, Download, Cpu, Activity, FileText, CheckCircle } from 'lucide-react';
+import { RefreshCw, Download, FileText, CheckCircle, LineChart, Upload } from 'lucide-react';
 
 export const ForecastView: React.FC = () => {
-  const { forecastResult } = useCashflowStore();
+  const { baselineForecastResult, forecastResult: legacyForecastResult, setActiveTab } = useCashflowStore();
   const predictMutation = usePredictCashflow();
+
+  // AI Forecast View consumes pristine baseline forecast result
+  const forecastResult = baselineForecastResult || legacyForecastResult;
 
   if (!forecastResult) {
     return (
-      <div className="glass-panel p-12 rounded-2xl text-center">
-        <p className="text-slate-400">No active forecast data. Please upload a bank statement first.</p>
+      <div className="glass-panel p-12 rounded-2xl text-center flex flex-col items-center justify-center min-h-[300px]">
+        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-3">
+          <LineChart className="w-6 h-6" />
+        </div>
+        <h3 className="text-base font-bold text-slate-200">No Active Cashflow Forecast</h3>
+        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+          Upload a bank statement to generate AI cashflow predictions and confidence bounds.
+        </p>
+        <button
+          onClick={() => setActiveTab('upload')}
+          className="mt-4 px-4 py-2 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl transition-all flex items-center gap-1.5"
+        >
+          <Upload className="w-3.5 h-3.5" /> Upload Bank Statement
+        </button>
       </div>
     );
   }
 
-  const { metrics, points, feature_importance, next_day_cashflow } = forecastResult;
+  const { points, feature_importance, next_day_cashflow } = forecastResult;
 
   const handleDownloadPredictionsCSV = () => {
     const headers = 'Date,Predicted_Cashflow,Lower_CI_95,Upper_CI_95,Type\n';
@@ -40,7 +55,6 @@ export const ForecastView: React.FC = () => {
   const handleDownloadMetricsJSON = () => {
     const jsonStr = JSON.stringify(
       {
-        model_metadata: metrics,
         feature_importance: feature_importance,
         latest_prediction: {
           next_day_net: next_day_cashflow,
@@ -65,10 +79,10 @@ export const ForecastView: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-100">
-            ML Cashflow Forecasting & Confidence Bounds
+            AI Cashflow Forecast
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            Machine Learning multi-day trajectory projections with 95% confidence intervals
+            Machine learning multi-day cashflow predictions and scenario bounds
           </p>
         </div>
 
@@ -77,7 +91,7 @@ export const ForecastView: React.FC = () => {
             onClick={handleDownloadMetricsJSON}
             className="px-3.5 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5"
           >
-            <FileText className="w-4 h-4 text-teal-400" /> Download Metrics JSON
+            <FileText className="w-4 h-4 text-teal-400" /> Export JSON Summary
           </button>
 
           <button
@@ -88,45 +102,13 @@ export const ForecastView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => predictMutation.mutate()}
+            onClick={() => predictMutation.mutate(undefined)}
             disabled={predictMutation.isPending}
             className="px-5 py-2.5 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${predictMutation.isPending ? 'animate-spin' : ''}`} />
             Run Model Prediction
           </button>
-        </div>
-      </div>
-
-      {/* Model Metadata Banner */}
-      <div className="glass-panel rounded-2xl p-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Cpu className="w-3.5 h-3.5 text-teal-400" /> Model Architecture
-          </span>
-          <div className="text-sm font-bold text-slate-100">{metrics.model_name}</div>
-        </div>
-
-        <div className="space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Trained Date</span>
-          <div className="text-sm font-bold text-slate-200">{metrics.trained_date}</div>
-        </div>
-
-        <div className="space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Activity className="w-3.5 h-3.5 text-emerald-400" /> Model RMSE
-          </span>
-          <div className="text-sm font-bold text-emerald-400">${metrics.rmse.toLocaleString()}</div>
-        </div>
-
-        <div className="space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Model MAE</span>
-          <div className="text-sm font-bold text-slate-200">${metrics.mae.toLocaleString()}</div>
-        </div>
-
-        <div className="space-y-1 col-span-2 md:col-span-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">R² Score</span>
-          <div className="text-sm font-bold text-teal-400">{(metrics.r2 * 100).toFixed(1)}% Accuracy</div>
         </div>
       </div>
 

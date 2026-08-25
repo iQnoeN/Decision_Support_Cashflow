@@ -8,7 +8,8 @@ import { DollarSign, Flame, Clock, TrendingUp, Calendar, Landmark, Upload } from
 
 export const DashboardView: React.FC = () => {
   const {
-    forecastResult,
+    baselineForecastResult,
+    forecastResult: legacyForecastResult,
     transactions,
     dateRange,
     setDateRange,
@@ -17,10 +18,14 @@ export const DashboardView: React.FC = () => {
     setActiveTab,
   } = useCashflowStore();
 
-  const currentBalance = forecastResult?.current_balance || 145800;
-  const burnRate30d = forecastResult?.historical_burn_rate_30d || 84500;
-  const runwayDays = forecastResult?.runway_days || 48;
-  const nextDayCashflow = forecastResult?.next_day_cashflow || 4820;
+  // Dashboard consumes pristine baseline forecast result
+  const forecastResult = baselineForecastResult || legacyForecastResult;
+
+  const hasData = Boolean(forecastResult);
+  const currentBalance = hasData ? formatCurrency(forecastResult!.current_balance) : '--';
+  const burnRate30d = hasData && forecastResult!.historical_burn_rate_30d > 0 ? formatCurrency(forecastResult!.historical_burn_rate_30d) : '--';
+  const runwayDays = hasData && forecastResult!.runway_days > 0 ? `${forecastResult!.runway_days} Days` : '--';
+  const nextDayCashflow = hasData ? `${forecastResult!.next_day_cashflow >= 0 ? '+' : ''}${formatCurrency(forecastResult!.next_day_cashflow)}` : '--';
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -82,58 +87,76 @@ export const DashboardView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <KpiCard
           title="Current Cash Balance"
-          value={formatCurrency(currentBalance)}
+          value={currentBalance}
           subtitle="Total available liquid funds"
-          change={+4.2}
+          change={hasData ? +4.2 : undefined}
           icon={DollarSign}
           iconBgColor="bg-emerald-500/15"
           iconTextColor="text-emerald-400"
-          badgeText="Healthy"
-          badgeType="success"
+          badgeText={hasData ? 'Healthy' : 'No Data'}
+          badgeType={hasData ? 'success' : 'neutral'}
         />
 
         <KpiCard
           title="30-Day Cash Burn Rate"
-          value={formatCurrency(burnRate30d)}
+          value={burnRate30d}
           subtitle="Operating expenses burn"
-          change={-2.1}
-          changeLabel="vs previous 30d"
+          change={hasData ? -2.1 : undefined}
+          changeLabel={hasData ? 'vs previous 30d' : undefined}
           icon={Flame}
           iconBgColor="bg-rose-500/15"
           iconTextColor="text-rose-400"
-          badgeText="Normal"
+          badgeText={hasData ? 'Normal' : 'No Data'}
           badgeType="neutral"
         />
 
         <KpiCard
           title="Estimated Runway"
-          value={`${runwayDays} Days`}
+          value={runwayDays}
           subtitle="Days of operation remaining"
-          change={+6}
-          changeLabel="+6 days buffer"
+          change={hasData ? +6 : undefined}
+          changeLabel={hasData ? '+6 days buffer' : undefined}
           icon={Clock}
           iconBgColor="bg-teal-500/15"
           iconTextColor="text-teal-400"
-          badgeText="Low Risk"
-          badgeType="success"
+          badgeText={hasData ? 'Low Risk' : 'No Data'}
+          badgeType={hasData ? 'success' : 'neutral'}
         />
 
         <KpiCard
           title="Next-Day Forecast Net"
-          value={`${nextDayCashflow >= 0 ? '+' : ''}${formatCurrency(nextDayCashflow)}`}
-          subtitle="ML model next-day net"
-          change={+12.4}
+          value={nextDayCashflow}
+          subtitle="AI model next-day net"
+          change={hasData ? +12.4 : undefined}
           icon={TrendingUp}
           iconBgColor="bg-teal-500/15"
           iconTextColor="text-teal-400"
-          badgeText={forecastResult?.risk || 'Stable'}
-          badgeType={forecastResult?.risk === 'Stable' ? 'success' : 'warning'}
+          badgeText={hasData ? forecastResult?.risk || 'Stable' : 'No Data'}
+          badgeType={hasData ? (forecastResult?.risk === 'Stable' ? 'success' : 'warning') : 'neutral'}
         />
       </div>
 
       {/* Time-Series Chart */}
       <div className="w-full">
-        <CashflowChart points={forecastResult?.points || []} />
+        {hasData ? (
+          <CashflowChart points={forecastResult?.points || []} />
+        ) : (
+          <div className="glass-panel rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-3">
+              <Upload className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-200">No Cashflow Data Available</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm">
+              Upload a bank statement CSV to begin analysis and generate cashflow forecasts.
+            </p>
+            <button
+              onClick={() => setActiveTab('upload')}
+              className="mt-4 px-4 py-2 text-xs font-bold bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-xl transition-all"
+            >
+              Upload Bank Statement
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Recent Transactions Table */}

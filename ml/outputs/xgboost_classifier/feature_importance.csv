@@ -1,0 +1,12 @@
+Feature,Importance
+End_Balance,0.23832113
+Cash_Out,0.22248006
+Target,0.2026712
+Cash_In,0.09351773
+Rolling_Mean_7,0.06095145
+Rolling_Std_7,0.046727423
+Transaction_Count,0.039203648
+Rolling_CashOut_7,0.032274794
+Lag_7,0.022747833
+Rolling_CashIn_7,0.022071443
+Lag_1,0.019033296

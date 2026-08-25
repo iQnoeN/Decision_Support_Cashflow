@@ -20,7 +20,6 @@ import {
   Menu,
   X,
   UserCheck,
-  Sparkles,
   HelpCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -29,7 +28,6 @@ export const App: React.FC = () => {
   const { isAuthenticated, user, logout, switchRole } = useAuthStore();
   const { activeTab, setActiveTab, isDarkMode, toggleDarkMode } = useCashflowStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showDemoGuide, setShowDemoGuide] = useState(false);
 
   if (!isAuthenticated) {
     return (
@@ -43,7 +41,7 @@ export const App: React.FC = () => {
   const navItems: { id: ViewTab; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'upload', label: 'Upload Statement', icon: Upload },
-    { id: 'forecast', label: 'ML Forecast', icon: LineChart },
+    { id: 'forecast', label: 'AI Forecast', icon: LineChart },
     { id: 'liquidity', label: 'Liquidity Risk', icon: ShieldAlert },
     { id: 'help', label: 'Help & Guide', icon: HelpCircle },
   ];
@@ -96,15 +94,6 @@ export const App: React.FC = () => {
 
           {/* User Profile & Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Demo Presentation Guide Button */}
-            <button
-              onClick={() => setShowDemoGuide(!showDemoGuide)}
-              className="px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400 hover:bg-teal-500/20 transition-all text-xs font-semibold flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5 fill-teal-400" />
-              <span className="hidden sm:inline">Demo Script</span>
-            </button>
-
             {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}
@@ -180,32 +169,6 @@ export const App: React.FC = () => {
           </div>
         )}
       </header>
-
-      {/* Presentation Tour Guide Banner */}
-      {showDemoGuide && (
-        <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-slate-950 border-b border-teal-500/30 p-4 relative animate-slide-up">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-teal-400 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 fill-teal-400" /> Executive Demo Presentation Script (Tomorrow's Tour)
-              </div>
-              <p className="text-xs text-slate-300">
-                <strong>Step 1:</strong> Start on <em>Dashboard</em> (Show Balance & 30d Burn Rate) → 
-                <strong>Step 2:</strong> Go to <em>Upload Statement</em> (Click "Load Sample Demo Statement") → 
-                <strong>Step 3:</strong> Review <em>ML Forecast</em> (Highlight 95% Confidence Intervals & Feature Weights) → 
-                <strong>Step 4:</strong> Show <em>Liquidity Risk</em> (Click "Recession Stress" 1-Click Preset slider).
-              </p>
-            </div>
-
-            <button
-              onClick={() => setShowDemoGuide(false)}
-              className="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 rounded-lg border border-slate-700"
-            >
-              Dismiss Script
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Workspace Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

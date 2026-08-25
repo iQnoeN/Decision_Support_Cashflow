@@ -37,6 +37,9 @@ ml/models/*.h5
 ml/models/*.keras
 ml/models/*.onnx
 
+# Large Data Files (>100MB)
+ml/data/raw/transactions_data.csv
+
 # ==========================================
 # Node / React
 # ==========================================

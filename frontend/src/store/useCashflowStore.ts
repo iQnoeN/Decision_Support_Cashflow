@@ -29,47 +29,26 @@ interface CashflowState {
   transactions: TransactionItem[];
   setTransactions: (txs: TransactionItem[]) => void;
 
-  // Forecast data
+  // Forecast data separation: Pristine Baseline vs Active Scenario
+  baselineForecastResult: FullForecastResult | null;
+  scenarioForecastResult: FullForecastResult | null;
+  setBaselineForecastResult: (result: FullForecastResult | null) => void;
+  setScenarioForecastResult: (result: FullForecastResult | null) => void;
+
+  // Backward compatibility alias for single-view getters
   forecastResult: FullForecastResult | null;
-  setForecastResult: (result: FullForecastResult) => void;
+  setForecastResult: (result: FullForecastResult | null) => void;
 
   // Uploaded file state
   lastUploadedFilename: string | null;
   setLastUploadedFilename: (filename: string | null) => void;
 }
 
-const initialScenario: ScenarioParams = {
+export const initialScenario: ScenarioParams = {
   inflow_multiplier: 1.0,
   outflow_multiplier: 1.0,
   horizon_days: 14,
 };
-
-// Seed initial baseline dataset for instant rich dashboard rendering
-const initialTransactions: TransactionItem[] = [
-  { id: 'tx-001', date: '2026-08-06', description: 'Stripe Merchant Payout', amount: 14500.0, category: 'Revenue', account: 'Operating Checking (*4910)', type: 'inflow', balance: 145800.0 },
-  { id: 'tx-002', date: '2026-08-05', description: 'AWS Infrastructure Services', amount: -3200.0, category: 'Cloud Infrastructure', account: 'Operating Checking (*4910)', type: 'outflow', balance: 131300.0 },
-  { id: 'tx-003', date: '2026-08-04', description: 'Gusto Enterprise Payroll', amount: -28500.0, category: 'Payroll & HR', account: 'Payroll Checking (*1088)', type: 'outflow', balance: 134500.0 },
-  { id: 'tx-004', date: '2026-08-03', description: 'Enterprise Subscription Collection', amount: 19800.0, category: 'Revenue', account: 'Operating Checking (*4910)', type: 'inflow', balance: 163000.0 },
-  { id: 'tx-005', date: '2026-08-02', description: 'Google Cloud Platform', amount: -1450.0, category: 'Software Tools', account: 'Corporate Credit (*9921)', type: 'outflow', balance: 143200.0 },
-  { id: 'tx-006', date: '2026-08-01', description: 'Salesforce License Renewal', amount: -4800.0, category: 'Software Tools', account: 'Corporate Credit (*9921)', type: 'outflow', balance: 144650.0 },
-  { id: 'tx-007', date: '2026-07-31', description: 'Acme Corp Advisory Fee', amount: 8200.0, category: 'Consulting', account: 'Operating Checking (*4910)', type: 'inflow', balance: 149450.0 },
-  { id: 'tx-008', date: '2026-07-30', description: 'WeWork Office Space Rent', amount: -6500.0, category: 'Facilities', account: 'Operating Checking (*4910)', type: 'outflow', balance: 141250.0 },
-];
-
-const initialForecast = mapBackendToFullForecast(
-  {
-    predicted_cashflow: 4820.50,
-    liquidity_score: 82.5,
-    risk: 'Stable',
-    recommendations: [
-      'Forecasted net cashflow remains positive (+ $4,820/day avg) over the next 14 days.',
-      'Current cash reserves cover 48 days of operating expenses.',
-      'Optimal window to re-invest $15,000 in short-term yield accounts.'
-    ]
-  },
-  initialTransactions,
-  initialScenario
-);
 
 export const useCashflowStore = create<CashflowState>((set) => ({
   activeTab: 'dashboard',
@@ -101,43 +80,71 @@ export const useCashflowStore = create<CashflowState>((set) => ({
   setScenario: (params) =>
     set((state) => {
       const updatedScenario = { ...state.scenario, ...params };
-      const updatedForecast = state.forecastResult
+      const isBaselineScenario =
+        updatedScenario.inflow_multiplier === 1.0 && updatedScenario.outflow_multiplier === 1.0;
+
+      if (isBaselineScenario) {
+        return {
+          scenario: updatedScenario,
+          scenarioForecastResult: null,
+        };
+      }
+
+      // Calculate scenario-adjusted forecast strictly for scenarioForecastResult without mutating baseline
+      const updatedScenarioForecast = state.baselineForecastResult
         ? mapBackendToFullForecast(
             {
-              predicted_cashflow: state.forecastResult.next_day_cashflow,
-              liquidity_score: state.forecastResult.liquidity_score,
-              risk: state.forecastResult.risk,
-              recommendations: state.forecastResult.recommendations,
+              predicted_cashflow: state.baselineForecastResult.next_day_cashflow,
+              liquidity_score: state.baselineForecastResult.liquidity_score,
+              risk: state.baselineForecastResult.risk,
+              recommendations: state.baselineForecastResult.recommendations,
             },
             state.transactions,
             updatedScenario
           )
         : null;
-      return { scenario: updatedScenario, forecastResult: updatedForecast };
-    }),
-  resetScenario: () =>
-    set((state) => {
-      const updatedForecast = state.forecastResult
-        ? mapBackendToFullForecast(
-            {
-              predicted_cashflow: state.forecastResult.next_day_cashflow,
-              liquidity_score: state.forecastResult.liquidity_score,
-              risk: state.forecastResult.risk,
-              recommendations: state.forecastResult.recommendations,
-            },
-            state.transactions,
-            initialScenario
-          )
-        : null;
-      return { scenario: initialScenario, forecastResult: updatedForecast };
+
+      return {
+        scenario: updatedScenario,
+        scenarioForecastResult: updatedScenarioForecast,
+      };
     }),
 
-  transactions: initialTransactions,
+  resetScenario: () =>
+    set({
+      scenario: initialScenario,
+      scenarioForecastResult: null,
+    }),
+
+  transactions: [],
   setTransactions: (txs) => set({ transactions: txs }),
 
-  forecastResult: initialForecast,
-  setForecastResult: (result) => set({ forecastResult: result }),
+  baselineForecastResult: null,
+  scenarioForecastResult: null,
 
-  lastUploadedFilename: 'q3_bank_statement_2026.csv',
+  setBaselineForecastResult: (result) =>
+    set({
+      baselineForecastResult: result,
+      scenarioForecastResult: null,
+      scenario: initialScenario,
+      forecastResult: result,
+    }),
+
+  setScenarioForecastResult: (result) =>
+    set({
+      scenarioForecastResult: result,
+    }),
+
+  // Backward compatibility wrapper
+  forecastResult: null,
+  setForecastResult: (result) =>
+    set({
+      baselineForecastResult: result,
+      scenarioForecastResult: null,
+      scenario: initialScenario,
+      forecastResult: result,
+    }),
+
+  lastUploadedFilename: null,
   setLastUploadedFilename: (filename) => set({ lastUploadedFilename: filename }),
 }));
