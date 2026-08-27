@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from './store/useAuthStore';
 import { useCashflowStore, ViewTab } from './store/useCashflowStore';
 import { LoginView } from './views/LoginView';
+import { RegisterView } from './views/RegisterView';
+import { VerifyEmailView } from './views/VerifyEmailView';
 import { DashboardView } from './views/DashboardView';
 import { UploadView } from './views/UploadView';
 import { ForecastView } from './views/ForecastView';
@@ -21,18 +23,58 @@ import {
   X,
   UserCheck,
   HelpCircle,
+  Loader2,
+  Shield,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const App: React.FC = () => {
-  const { isAuthenticated, user, logout, switchRole } = useAuthStore();
+  const { isAuthenticated, user, logout, isInitializing, checkAuth } = useAuthStore();
   const { activeTab, setActiveTab, isDarkMode, toggleDarkMode } = useCashflowStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
+  // Check URL query param for verification token
+  const urlParams = new URLSearchParams(window.location.search);
+  const verifyToken = urlParams.get('token');
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-10 h-10 text-teal-400 animate-spin" />
+        <p className="text-sm font-semibold text-slate-400">Restoring session...</p>
+      </div>
+    );
+  }
+
+  // Handle email verification page link if token present in URL
+  if (verifyToken) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center">
+        <VerifyEmailView
+          token={verifyToken}
+          onNavigateToLogin={() => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setAuthView('login');
+          }}
+        />
+        <ToastContainer />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center">
-        <LoginView />
+        {authView === 'login' ? (
+          <LoginView onNavigateToRegister={() => setAuthView('register')} />
+        ) : (
+          <RegisterView onNavigateToLogin={() => setAuthView('login')} />
+        )}
         <ToastContainer />
       </div>
     );
@@ -45,6 +87,12 @@ export const App: React.FC = () => {
     { id: 'liquidity', label: 'Liquidity Risk', icon: ShieldAlert },
     { id: 'help', label: 'Help & Guide', icon: HelpCircle },
   ];
+
+  const roleLabels: Record<string, string> = {
+    financial_analyst: 'Analyst',
+    finance_manager: 'Manager',
+    cfo_executive: 'CFO Executive',
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col selection:bg-teal-500 selection:text-white">
@@ -103,24 +151,20 @@ export const App: React.FC = () => {
               {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-teal-400" />}
             </button>
 
-            {/* Persona Role Switcher Pill */}
+            {/* Authenticated User Info Pill */}
             {user && (
-              <div className="hidden lg:flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-5 h-5 rounded-full object-cover border border-teal-500"
-                />
-                <span className="font-semibold text-slate-200">{user.name}</span>
-                <select
-                  value={user.role}
-                  onChange={(e) => switchRole(e.target.value as any)}
-                  className="bg-transparent text-[11px] font-bold text-teal-400 focus:outline-none cursor-pointer"
-                >
-                  <option value="financial_analyst" className="bg-slate-900">Analyst</option>
-                  <option value="finance_manager" className="bg-slate-900">Manager</option>
-                  <option value="cfo_executive" className="bg-slate-900">CFO Executive</option>
-                </select>
+              <div className="hidden lg:flex items-center gap-2.5 bg-slate-900 px-3.5 py-1.5 rounded-xl border border-slate-800 text-xs">
+                <div className="w-6 h-6 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 font-bold flex items-center justify-center text-[10px]">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="font-semibold text-slate-200 leading-tight">{user.name}</span>
+                  <span className="text-[10px] text-slate-400">{user.email}</span>
+                </div>
+                <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-400 border border-teal-500/30 flex items-center gap-1">
+                  <Shield className="w-3 h-3 text-teal-400" />
+                  {roleLabels[user.role] || user.role}
+                </span>
               </div>
             )}
 
@@ -184,7 +228,7 @@ export const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span>Decision Support Cashflow AI System • Production React + TS Frontend</span>
           <span className="flex items-center gap-1.5 text-teal-400 font-semibold">
-            <UserCheck className="w-3.5 h-3.5" /> API Connected to /upload & /predict
+            <UserCheck className="w-3.5 h-3.5" /> Authenticated & Connected to Cloud PostgreSQL
           </span>
         </div>
       </footer>

@@ -1,15 +1,30 @@
 """Main application entry point for the FastAPI backend service."""
 
+from contextlib import asynccontextmanager
 from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import prediction_router, upload_router
+from app.api.routes import auth_router, prediction_router, upload_router
 from app.core.config import settings
+from app.core.database import create_tables
 from app.utils.logging import get_logger
 
+# Import models so they register with Base.metadata
+import app.models.user  # noqa: F401
+
 logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Async lifespan: create DB tables on startup."""
+    logger.info("Creating database tables if they do not exist...")
+    await create_tables()
+    logger.info("Database tables ready.")
+    yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -18,6 +33,7 @@ app = FastAPI(
         "Backend API for short-term cashflow forecasting, "
         "liquidity risk assessment and financial decision support."
     ),
+    lifespan=lifespan,
 )
 
 # Enable CORS for frontend development server
@@ -30,6 +46,7 @@ app.add_middleware(
 )
 
 # Register API routers
+app.include_router(auth_router)
 app.include_router(prediction_router)
 app.include_router(upload_router)
 

@@ -81,8 +81,21 @@ export interface FullForecastResult {
 export type UserRole = 'financial_analyst' | 'finance_manager' | 'cfo_executive';
 
 export interface UserProfile {
+  id?: string;
   name: string;
   email: string;
   role: UserRole;
-  avatar: string;
+  avatar?: string;
+  is_verified?: boolean;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  user: UserProfile;
+}
+
+export interface ApiMessageResponse {
+  message: string;
+  detail?: string;
 }

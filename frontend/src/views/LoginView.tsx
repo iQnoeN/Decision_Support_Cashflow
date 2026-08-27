@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { UserRole } from '../api/types';
-import { ShieldCheck, TrendingUp, ArrowRight, UserCheck } from 'lucide-react';
+import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { ShieldCheck, TrendingUp, ArrowRight, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 
-export const LoginView: React.FC = () => {
-  const { login } = useAuthStore();
-  const [email, setEmail] = useState('alexandra.vance@acme-corp.com');
-  const [role, setRole] = useState<UserRole>('finance_manager');
+interface LoginViewProps {
+  onNavigateToRegister: () => void;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) => {
+  const { login, isLoading, error, clearError } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  React.useEffect(() => {
+    clearError();
+  }, [clearError]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, role);
+    await login(email, password);
   };
 
   return (
@@ -28,57 +36,95 @@ export const LoginView: React.FC = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-bold">Authentication Error</span>
+              <p className="mt-0.5 text-rose-300/90">{error}</p>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
               Work Email Address
             </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900/90 text-sm text-slate-100 px-4 py-3 rounded-xl border border-slate-700 focus:border-teal-400 focus:outline-none transition-colors"
-            />
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => {
+                  if (error) clearError();
+                  setEmail(e.target.value);
+                }}
+                placeholder="name@company.com"
+                className="w-full bg-slate-900/90 text-sm text-slate-100 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-teal-400 focus:outline-none transition-colors"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-              Select Financial Persona / Role
+              Password
             </label>
-            <div className="grid grid-cols-1 gap-2">
-              {[
-                { id: 'financial_analyst', label: 'Financial Analyst', desc: 'Full upload, model testing & raw CSV export rights' },
-                { id: 'finance_manager', label: 'Finance Manager', desc: 'Forecast execution, scenario simulations & alerts' },
-                { id: 'cfo_executive', label: 'CFO / Executive', desc: 'High-level dashboard KPIs & risk summary' },
-              ].map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRole(r.id as UserRole)}
-                  className={`p-3 rounded-xl border text-left transition-all flex items-start justify-between ${
-                    role === r.id
-                      ? 'bg-teal-500/15 border-teal-500 text-teal-300'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                  }`}
-                >
-                  <div>
-                    <div className="text-xs font-bold text-slate-200">{r.label}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{r.desc}</div>
-                  </div>
-                  {role === r.id && <UserCheck className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />}
-                </button>
-              ))}
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => {
+                  if (error) clearError();
+                  setPassword(e.target.value);
+                }}
+                placeholder="••••••••"
+                className="w-full bg-slate-900/90 text-sm text-slate-100 pl-10 pr-4 py-3 rounded-xl border border-slate-700 focus:border-teal-400 focus:outline-none transition-colors"
+              />
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3.5 px-6 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center gap-2 mt-4"
+            disabled={isLoading}
+            className="w-full py-3.5 px-6 bg-teal-500 hover:bg-teal-400 disabled:bg-slate-700 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer disabled:cursor-not-allowed"
           >
-            Launch Decision Workspace <ArrowRight className="w-4 h-4" />
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Authenticating...
+              </>
+            ) : (
+              <>
+                Sign In to Decision Workspace <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700/60"></div>
+          </div>
+          <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+            <span className="bg-slate-900/90 px-3 text-slate-400 rounded-md">Or continue with</span>
+          </div>
+        </div>
+
+        <GoogleAuthButton text="continue_with" />
+
+        <div className="mt-6 text-center text-xs text-slate-400">
+          Don't have an account?{' '}
+          <button
+            type="button"
+            onClick={onNavigateToRegister}
+            className="text-teal-400 hover:underline font-semibold"
+          >
+            Register new account
+          </button>
+        </div>
 
         <div className="mt-6 pt-4 border-t border-slate-800 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
